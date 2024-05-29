@@ -7,6 +7,8 @@ import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from tqdm import tqdm
 import time
+import tkinter as tk
+from tkinter import simpledialog, messagebox
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s', handlers=[
@@ -43,8 +45,7 @@ hash_store_path = r"C:\Users\mattc\Desktop\file_hashes.json"
 IGNORE_EXTENSIONS = {'.jpg', '.nfo', '.srt', '.txt', '.png', 'srr', '.sub', '.idx'}
 
 def get_user_input(prompt, default):
-    user_input = input(f"{prompt} [{default}]: ").strip()
-    return type(default)(user_input) if user_input else default
+    return simpledialog.askstring("Input", f"{prompt} [{default}]", initialvalue=str(default))
 
 def load_hashes():
     if os.path.exists(hash_store_path):
@@ -194,14 +195,18 @@ def main():
     default_batch_size = 10
     default_max_files = float('inf')
 
-    # Get user inputs for parameters
-    throttle_sleep_source = get_user_input("Enter sleep interval between file reads for source drives (seconds)", default_throttle_sleep_source)
-    throttle_sleep_backup = get_user_input("Enter sleep interval between file reads for backup drives (seconds)", default_throttle_sleep_backup)
-    throttle_sleep_copy = get_user_input("Enter sleep interval between file copy operations (seconds)", default_throttle_sleep_copy)
-    max_workers_source = get_user_input("Enter number of concurrent workers for source drives", default_max_workers_source)
-    max_workers_backup = get_user_input("Enter number of concurrent workers for backup drives", default_max_workers_backup)
-    batch_size = get_user_input("Enter number of files to process in each batch", default_batch_size)
-    max_files = get_user_input("Enter maximum number of files to backup in one run", default_max_files)
+    # Initialize the Tkinter root window
+    root = tk.Tk()
+    root.withdraw()  # Hide the root window
+
+    # Get user inputs for parameters using Tkinter
+    throttle_sleep_source = float(get_user_input("Enter sleep interval between file reads for source drives (seconds)", default_throttle_sleep_source))
+    throttle_sleep_backup = float(get_user_input("Enter sleep interval between file reads for backup drives (seconds)", default_throttle_sleep_backup))
+    throttle_sleep_copy = float(get_user_input("Enter sleep interval between file copy operations (seconds)", default_throttle_sleep_copy))
+    max_workers_source = int(get_user_input("Enter number of concurrent workers for source drives", default_max_workers_source))
+    max_workers_backup = int(get_user_input("Enter number of concurrent workers for backup drives", default_max_workers_backup))
+    batch_size = int(get_user_input("Enter number of files to process in each batch", default_batch_size))
+    max_files = int(get_user_input("Enter maximum number of files to backup in one run", default_max_files))
 
     try:
         # Load existing hashes
@@ -233,15 +238,16 @@ def main():
                 for file_path in file_paths:
                     report_file.write(f"{file_path}\n")
 
-        # Proceed to backup stage here...
-        proceed = input("Do you want to proceed with backup? (yes/no): ").strip().lower()
-        if proceed == "yes":
+        # Ask user if they want to proceed with the backup
+        proceed = messagebox.askyesno("Confirm Backup", "Do you want to proceed with backup?")
+        if proceed:
             backup_files(unique_files, categories, backup_categories, throttle_sleep_copy, batch_size, max_files)
         else:
             logging.info("Backup aborted by user.")
     except Exception as e:
         logging.error(f"An error occurred: {e}")
-        print(f"An error occurred: {e}")
+        messagebox.showerror("Error", f"An error occurred: {e}")
 
 if __name__ == "__main__":
     main()
+
